@@ -6,6 +6,7 @@ export class Slide {
     this.wrapper = document.querySelector(wrapper);
     this.dist = { finalPosition: 0, startX: 0, movement: 0 };
     this.activeClass = "active";
+    this.changeEvent = new Event("changeEvent");
   }
 
   transition(active) {
@@ -38,7 +39,9 @@ export class Slide {
 
   onMove(event) {
     const pointerPosition =
-      event.type === "mousemove" ? event.clientX : event.changedTouches[0];
+      event.type === "mousemove"
+        ? event.clientX
+        : event.changedTouches[0].clientX;
     const finalPosition = this.updatePosition(pointerPosition);
     this.moveSlide(finalPosition);
   }
@@ -97,6 +100,7 @@ export class Slide {
     this.slidesIndexNav(index);
     this.dist.finalPosition = activeSlide.position;
     this.changeActiveClass();
+    this.wrapper.dispatchEvent(this.changeEvent);
   }
 
   changeActiveClass() {
@@ -134,8 +138,8 @@ export class Slide {
     this.onMove = this.onMove.bind(this);
     this.onEnd = this.onEnd.bind(this);
 
-    this.activePrevSlide =   this.activePrevSlide.bind(this)
-    this.activeNextSlide =   this.activeNextSlide.bind(this)
+    this.activePrevSlide = this.activePrevSlide.bind(this);
+    this.activeNextSlide = this.activeNextSlide.bind(this);
 
     this.onResize = debounce(this.onResize.bind(this), 200);
   }
@@ -146,20 +150,65 @@ export class Slide {
     this.addSlideEvents();
     this.slidesConfig();
     this.addResizeEvent();
-    this.changeSlide(0)
+    this.changeSlide(0);
     return this;
   }
 }
 
 export class SlideNav extends Slide {
-  addArrow (prev, next){
-   this.prevelement = document.querySelector(prev) 
-   this.nextelement = document.querySelector(next) 
-   this.addArrowEvent()
+  constructor(slide, wrapper) {
+    super(slide, wrapper);
+    this.bindCrontrolEvents();
+  }
+  addArrow(prev, next) {
+    this.prevelement = document.querySelector(prev);
+    this.nextelement = document.querySelector(next);
+    this.addArrowEvent();
   }
 
-  addArrowEvent(){
-    this.prevelement.addEventListener('click', this.activePrevSlide)
-    this.nextelement.addEventListener('click', this.activeNextSlide)
+  addArrowEvent() {
+    this.prevelement.addEventListener("click", this.activePrevSlide);
+    this.nextelement.addEventListener("click", this.activeNextSlide);
+  }
+
+  createCrontrol() {
+    const control = document.createElement("ul");
+    control.dataset.control = "slide";
+
+    this.slideArray.forEach((item, index) => {
+      control.innerHTML += `<li><a href="#slide${index + 1}">${
+        index + 1
+      }</a></li>`;
+    });
+    this.wrapper.appendChild(control);
+    return control;
+  }
+
+  eventCrontrol(item, index) {
+    item.addEventListener("click", (event) => {
+      event.preventDefault();
+      this.changeSlide(index);
+    });
+    this.wrapper.addEventListener("changeEvent", this.activeCrontrolItem);
+  }
+
+  activeCrontrolItem() {
+    this.controlArray.forEach((item) =>
+      item.classList.remove(this.activeClass),
+    );
+    this.controlArray[this.index.active].classList.add(this.activeClass);
+  }
+
+  addControl(customCrontrol) {
+    this.control =
+      document.querySelector(customCrontrol) || this.createCrontrol();
+    this.controlArray = [...this.control.children];
+
+    this.activeCrontrolItem();
+    this.controlArray.forEach(this.eventCrontrol);
+  }
+  bindCrontrolEvents() {
+    this.eventCrontrol = this.eventCrontrol.bind(this);
+    this.activeCrontrolItem = this.activeCrontrolItem.bind(this);
   }
 }
